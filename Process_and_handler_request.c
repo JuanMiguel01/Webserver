@@ -171,14 +171,36 @@ void *process_request(void *args)
             strcat(header, path);
             realpath(header, resolvedPath);
             printf("resolvedPath %s\n", resolvedPath);
-
+            char *sort_by = NULL;
+            char *query_string = strchr(resolvedPath, '?');
+            if (query_string)
+            {
+                query_string++;
+                char *param_start = strstr(query_string, "sort_by=");
+                if (param_start)
+                {
+                    param_start += strlen("sort_by=");
+                    char *param_end = strchr(param_start, '&');
+                    if (param_end)
+                        sort_by = strndup(param_start, param_end - param_start);
+                    else
+                        sort_by = strdup(param_start);
+                }
+                *(query_string - 1) = '\0';
+                perror(sort_by);
+            }
+            else
+            {
+                sort_by = "name";
+            }
+            perror(resolvedPath);
             struct stat file_info;
             if (stat(resolvedPath, &file_info) == 0)
             {
                 if (S_ISDIR(file_info.st_mode))
                 {
                     // Es un directorio
-                    char *html = generate_directory_listing(resolvedPath);
+                    char *html = generate_directory_listing(resolvedPath, sort_by);
 
                     if (html != NULL)
                     {
