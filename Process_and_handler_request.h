@@ -1,8 +1,11 @@
 #ifndef PROCESS_HANDLER_H
 #define PROCESS_HANDLER_H
+struct thread_args {
+    int new_socket;
+    char *root_directory;
+};
 
+void *process_request(void *args);
 
-void process_request(int new_socket, char *buffer,char *root_directory);
-void handle_request(int new_socket,char *buffer);
 
 #endif

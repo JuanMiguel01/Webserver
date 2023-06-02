@@ -6,7 +6,9 @@
 #include <unistd.h>
 #include <signal.h>
 #include <dirent.h>
+#include <pthread.h>
 #include "Process_and_handler_request.h"
+
 
 int server_fd; // Descriptor de archivo del socket del servidor
 
@@ -45,7 +47,7 @@ int main(int argc, char *argv[])
     printf("Listening on port: %d\n", port);
     printf("Serving directory: %s\n", root_directory);
     signal(SIGINT, sigint_handler);
-    char buffer[1024];
+
     // Create a socket
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -65,27 +67,20 @@ int main(int argc, char *argv[])
 
     // Accept connections
     while (1)
-    {   
-        perror("colvio");
-        int new_socket;
-        if ((new_socket = accept(server_socket, NULL, NULL)) < 0)
-        {
-            perror("accept");
-            exit(EXIT_FAILURE);
-        }
-        
-        process_request(new_socket, buffer,root_directory);
-        perror("esta aqui");
-        // Recibir datos del cliente
-        perror(buffer);
-        int result = read(new_socket, buffer, 1024);
-        if (result < 0) {
-            perror("Error al recibir datos del cliente");
-        }
-
-        printf("Received from client: %s\n", buffer);
-
+{
+    int new_socket = accept(server_socket, NULL, NULL);
+    if (new_socket < 0)
+    {
+        perror("accept");
+        exit(EXIT_FAILURE);
     }
+
+    pthread_t thread_id;
+    struct thread_args *targs = malloc(sizeof(struct thread_args));
+    targs->new_socket = new_socket;
+    targs->root_directory = root_directory;
+    pthread_create(&thread_id, NULL, process_request, targs);
+}
 
     return 0;
 }

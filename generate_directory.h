@@ -3,6 +3,6 @@
 #define GENERATE_DIRECTORY_H
 
 
-void generate_directory_listing(int new_socket, char *root_directory);
+char *generate_directory_listing( char *root_directory);
 
 #endif // GENERATE_DIRECTORY_H
