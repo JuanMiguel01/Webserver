@@ -52,14 +52,25 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
 
     // Generar el encabezado HTML
     length += snprintf(html + length, buffer_size - length,
-                       "<!DOCTYPE html>\n"
-                       "<html lang=\"en\">\n"
-                       "<head><title>Directory Listing</title></head>\n"
-                       "<body>\n"
-                       "<h1>Directory: %s</h1>\n"
-                       "<table>\n"
-                       "<tr><th><a href=\"?sort_by=name\">Name</a></th><th><a href=\"?sort_by=size\">Size</a></th><th><a href=\"?sort_by=mtime\">Date</a></th></tr>\n",
-                       root_directory);
+                   "<!DOCTYPE html>\n"
+                   "<html lang=\"en\">\n"
+                   "<head><title>Directory Listing</title>\n"
+                   "<style>\n"
+                   "body { font-family: Arial, sans-serif; }\n"
+                   "table { border-collapse: collapse; width: 100%; }\n"
+                   "th, td { text-align: left; padding: 8px; }\n"
+                   "tr:nth-child(even) { background-color: #f2f2f2; }\n"
+                   "th { background-color: #4CAF50; color: white; }\n"
+                   "a { text-decoration: none; color: #000; }\n"
+                   "a:hover { color: #99cc00; }\n"
+                   "</style>\n"
+                   "</head>\n"
+                   "<body>\n"
+                   "<h1>Directory: %s</h1>\n"
+                   "<table>\n"
+                   "<tr><th></th><th><a href=\"?sort_by=name\">Name</a></th><th><a href=\"?sort_by=size\">Size</a></th><th><a href=\"?sort_by=mtime\">Date</a></th></tr>\n"
+                   "<tr><td></td><td colspan=\"3\"><a href=\"..\">&#x2190;</a></td></tr>\n",
+                   root_directory);
 
     // Listar el contenido del directorio
     struct dirent *entry;
@@ -67,6 +78,9 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
     int num_entries = 0;
     while ((entry = readdir(dir)) != NULL)
     {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        continue;
+
         // Generar la ruta completa del archivo o directorio
         char path[1024];
         snprintf(path, sizeof(path), "%s/%s", root_directory, entry->d_name);
@@ -113,8 +127,8 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
 
     // Generar la fila HTML para esta entrada
     length += snprintf(html + length, buffer_size - length,
-        "<tr><td><a href=\"%s%s\">%s</a></td><td>%ld</td><td>%s</td></tr>\n",
-        entries[i].name, isdir ? "/" : "", entries[i].name, file_size, mod_time_str);
+        "<tr><td>%s</td><td><a href=\"%s%s\">%s</a></td><td>%ld</td><td>%s</td></tr>\n",
+        isdir ? "&#x1F4C2;" : "&#x1F4C4;", entries[i].name, isdir ? "/" : "", entries[i].name, file_size, mod_time_str);
 }
     closedir(dir);
 
