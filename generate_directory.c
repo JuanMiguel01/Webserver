@@ -1,14 +1,60 @@
 #include <dirent.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <ctype.h>
+
 struct directory_entry {
     char name[256];
     off_t size;
     time_t mtime;
 };
+
+
+int hex_to_int(char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    } else {
+        return -1;
+    }
+}
+char *urlencode(const char *str) {
+    size_t len = strlen(str);
+    char *encoded = malloc(len * 3 + 1);
+    size_t i, j;
+    for (i = 0, j = 0; i < len; i++) {
+        if (isalnum(str[i]) || str[i] == '-' || str[i] == '_' || str[i] == '.' || str[i] == '~') {
+            encoded[j++] = str[i];
+        } else {
+            sprintf(encoded + j, "%%%02X", (unsigned char)str[i]);
+            j += 3;
+        }
+    }
+    encoded[j] = '\0';
+    return encoded;
+}
+char *urldecode(const char *str) {
+    size_t len = strlen(str);
+    char *decoded = malloc(len + 1);
+    size_t i, j;
+    for (i = 0, j = 0; i < len; i++, j++) {
+        if (str[i] == '%' && i + 2 < len && isxdigit(str[i+1]) && isxdigit(str[i+2])) {
+            decoded[j] = hex_to_int(str[i+1]) * 16 + hex_to_int(str[i+2]);
+            i += 2;
+        } else {
+            decoded[j] = str[i];
+        }
+    }
+    decoded[j] = '\0';
+    return decoded;
+}
 
 int compare_by_name(const void *a, const void *b)
 {
@@ -30,6 +76,27 @@ int compare_by_mtime(const void *a, const void *b)
     struct directory_entry *entry_b = (struct directory_entry *)b;
     return entry_a->mtime - entry_b->mtime;
 }
+
+void snprintf_j (char** buffer, size_t* size, size_t* offset, const char* fmt, ...)
+{
+    va_list l;
+    va_start (l, fmt);
+
+    size_t needed = vsnprintf (NULL, 0, fmt, l);
+                    va_end (l);
+
+    while ((*size) < ((*offset) + needed + 1))
+        (*size) *= 2;
+
+    (*buffer) = realloc ((*buffer), (*size));
+
+        va_start (l, fmt);
+    size_t wrote = vsnprintf ((*buffer) + (*offset), (*size) - (*offset), fmt, l);
+                    va_end (l);
+
+    (*offset) += wrote;
+}
+
 char *generate_directory_listing(char *root_directory,char *sort_by)
 {
     DIR *dir = opendir(root_directory);
@@ -40,7 +107,8 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
     }
 
     // Inicializar el búfer HTML
-    size_t buffer_size = 2048;
+    size_t buffer_size = 2;
+    size_t buffer_offset = 0;
     char *html = malloc(buffer_size);
     if (html == NULL)
     {
@@ -49,12 +117,13 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
         return NULL;
     }
     size_t length = 0;
-
+    perror("nde");
     // Generar el encabezado HTML
-    length += snprintf(html + length, buffer_size - length,
+    snprintf_j (&html, &buffer_size, &buffer_offset,
                    "<!DOCTYPE html>\n"
                    "<html lang=\"en\">\n"
                    "<head><title>Directory Listing</title>\n"
+                   "<meta charset=\"utf-8\" />\n"
                    "<style>\n"
                    "body { font-family: Arial, sans-serif; }\n"
                    "table { border-collapse: collapse; width: 100%; }\n"
@@ -126,9 +195,9 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
     int isdir = (closedir(dir2 = opendir(path)), dir2 != NULL);
 
     // Generar la fila HTML para esta entrada
-    length += snprintf(html + length, buffer_size - length,
+    snprintf_j (&html, &buffer_size, &buffer_offset,
         "<tr><td>%s</td><td><a href=\"%s%s\">%s</a></td><td>%ld</td><td>%s</td></tr>\n",
-        isdir ? "&#x1F4C2;" : "&#x1F4C4;", entries[i].name, isdir ? "/" : "", entries[i].name, file_size, mod_time_str);
+        isdir ? "&#x1F4C2;" : "&#x1F4C4;", urlencode(entries[i].name), isdir ? "/" : "", entries[i].name, file_size, mod_time_str);
 }
     closedir(dir);
 
