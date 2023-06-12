@@ -125,11 +125,10 @@ void strmode(mode_t mode, char *buf) {
 
 struct stat file_info;
 char *generate_directory_listing(char *root_directory, char *sort_by)
-{   perror(root_directory);
+{   
     DIR *dir = opendir(root_directory);
     if (dir == NULL)
     {
-        perror("Error al abrir el directorio");
         return NULL;
     }
 
@@ -144,7 +143,7 @@ char *generate_directory_listing(char *root_directory, char *sort_by)
         return NULL;
     }
     size_t length = 0;
-    perror("nde");
+    
     // Generar el encabezado HTML
     snprintf_j(&html, &buffer_size, &buffer_offset,
                "<!DOCTYPE html>\n"

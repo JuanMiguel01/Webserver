@@ -63,7 +63,7 @@ void *process_request(void *args)
             strcat(header, new_path);
 
             realpath(header, resolvedPath);
-            printf("resolvedPath %s\n", resolvedPath);
+            
             char *sort_by = NULL;
             char *query_string = strchr(resolvedPath, '?');
             
@@ -81,7 +81,7 @@ void *process_request(void *args)
                         sort_by = strdup(param_start);
                 }
                 *(query_string - 1) = '\0';
-                perror(sort_by);
+                
             }
             else
             {   
@@ -108,8 +108,7 @@ void *process_request(void *args)
                                                      strlen(html));
                         send(new_socket, header, strnlen(header, sizeof(header)), 0);
                         send(new_socket, html, strlen(html), 0);
-                        printf("%zu", strlen(html));
-                        printf("%s", header);
+                        
 
                         free(html);
                     }
