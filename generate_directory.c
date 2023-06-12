@@ -202,7 +202,7 @@ char *generate_directory_listing(char *root_directory, char *sort_by)
             strcpy(entries[num_entries].permissions, permissions_str);
 
             num_entries++;
-            close(path);
+            
         }
     }
     
