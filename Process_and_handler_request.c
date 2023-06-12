@@ -39,8 +39,7 @@ void *process_request(void *args)
             {
                 // Separar el nombre del encabezado del valor
                 *sep = '\0';
-                char *header = line;
-                char *value = sep + 2;
+                
 
                 // Desplegar el encabezado y el valor
                 // printf("%s: %s\n", header, value);
@@ -103,13 +102,13 @@ void *process_request(void *args)
                         int header_length = snprintf(header, sizeof(header),
                                                      "HTTP/1.1 200 OK\r\n"
                                                      "Content-Type: text/html\r\n"
-                                                     "Content-Length: %i\r\n"
+                                                     "Content-Length: %zu\r\n"
                                                      "Connection: close\r\n"
                                                      "\r\n",
                                                      strlen(html));
                         send(new_socket, header, strnlen(header, sizeof(header)), 0);
                         send(new_socket, html, strlen(html), 0);
-                        printf("%d", strlen(html));
+                        printf("%zu", strlen(html));
                         printf("%s", header);
 
                         free(html);
@@ -119,17 +118,17 @@ void *process_request(void *args)
                         int header_length = snprintf(header, sizeof(header),
                                                      "HTTP/1.1 500 Internal Server Error\r\n"
                                                      "Content-Type: text/html\r\n"
-                                                     "Content-Length: %i\r\n"
+                                                     "Content-Length: %zu\r\n"
                                                      "\r\n"
                                                      "<html><body><h1>500 Internal Server Error</h1></body></html>\r\n",
                                                      sizeof("<html><body><h1>500 Internal Server Error</h1></body></html>\r\n"));
                         send(new_socket, header, header_length, 0);
                     }
                 }
-                else if (S_ISREG(file_info.st_mode))
+                else if (S_ISREG(file_info.st_mode) )
                 {
                     // Es un archivo regular
-                    FILE *file = open(resolvedPath, O_RDONLY);
+                    int file = open(resolvedPath, O_RDONLY);
                     if (file != -1)
                     {
                         // Obtener el tamaño del archivo
@@ -160,7 +159,7 @@ void *process_request(void *args)
             }
             else
             {
-perror ("not found");
+
               int header_length = snprintf(header, sizeof(header),
                                                      "HTTP/1.1 404 Not Found\r\n"
                                                      "Content-Length: %ld\r\n"
@@ -172,6 +171,8 @@ perror ("not found");
             }
         }
     }
+    
     close (new_socket);
     free(args);
+    return NULL;
 }

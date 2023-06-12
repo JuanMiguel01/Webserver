@@ -7,32 +7,46 @@
 #include <time.h>
 #include <ctype.h>
 
-struct directory_entry {
+struct directory_entry
+{
     char name[256];
     off_t size;
     time_t mtime;
+    char permissions[11];
 };
 
-
-int hex_to_int(char c) {
-    if (c >= '0' && c <= '9') {
+int hex_to_int(char c)
+{
+    if (c >= '0' && c <= '9')
+    {
         return c - '0';
-    } else if (c >= 'A' && c <= 'F') {
+    }
+    else if (c >= 'A' && c <= 'F')
+    {
         return c - 'A' + 10;
-    } else if (c >= 'a' && c <= 'f') {
+    }
+    else if (c >= 'a' && c <= 'f')
+    {
         return c - 'a' + 10;
-    } else {
+    }
+    else
+    {
         return -1;
     }
 }
-char *urlencode(const char *str) {
+char *urlencode(const char *str)
+{
     size_t len = strlen(str);
     char *encoded = malloc(len * 3 + 1);
     size_t i, j;
-    for (i = 0, j = 0; i < len; i++) {
-        if (isalnum(str[i]) || str[i] == '-' || str[i] == '_' || str[i] == '.' || str[i] == '~') {
+    for (i = 0, j = 0; i < len; i++)
+    {
+        if (isalnum(str[i]) || str[i] == '-' || str[i] == '_' || str[i] == '.' || str[i] == '~')
+        {
             encoded[j++] = str[i];
-        } else {
+        }
+        else
+        {
             sprintf(encoded + j, "%%%02X", (unsigned char)str[i]);
             j += 3;
         }
@@ -40,15 +54,20 @@ char *urlencode(const char *str) {
     encoded[j] = '\0';
     return encoded;
 }
-char *urldecode(const char *str) {
+char *urldecode(const char *str)
+{
     size_t len = strlen(str);
     char *decoded = malloc(len + 1);
     size_t i, j;
-    for (i = 0, j = 0; i < len; i++, j++) {
-        if (str[i] == '%' && i + 2 < len && isxdigit(str[i+1]) && isxdigit(str[i+2])) {
-            decoded[j] = hex_to_int(str[i+1]) * 16 + hex_to_int(str[i+2]);
+    for (i = 0, j = 0; i < len; i++, j++)
+    {
+        if (str[i] == '%' && i + 2 < len && isxdigit(str[i + 1]) && isxdigit(str[i + 2]))
+        {
+            decoded[j] = hex_to_int(str[i + 1]) * 16 + hex_to_int(str[i + 2]);
             i += 2;
-        } else {
+        }
+        else
+        {
             decoded[j] = str[i];
         }
     }
@@ -77,28 +96,36 @@ int compare_by_mtime(const void *a, const void *b)
     return entry_a->mtime - entry_b->mtime;
 }
 
-void snprintf_j (char** buffer, size_t* size, size_t* offset, const char* fmt, ...)
+void snprintf_j(char **buffer, size_t *size, size_t *offset, const char *fmt, ...)
 {
     va_list l;
-    va_start (l, fmt);
+    va_start(l, fmt);
 
-    size_t needed = vsnprintf (NULL, 0, fmt, l);
-                    va_end (l);
+    size_t needed = vsnprintf(NULL, 0, fmt, l);
+    va_end(l);
 
     while ((*size) < ((*offset) + needed + 1))
         (*size) *= 2;
 
-    (*buffer) = realloc ((*buffer), (*size));
+    (*buffer) = realloc((*buffer), (*size));
 
-        va_start (l, fmt);
-    size_t wrote = vsnprintf ((*buffer) + (*offset), (*size) - (*offset), fmt, l);
-                    va_end (l);
+    va_start(l, fmt);
+    size_t wrote = vsnprintf((*buffer) + (*offset), (*size) - (*offset), fmt, l);
+    va_end(l);
 
     (*offset) += wrote;
 }
+void strmode(mode_t mode, char *buf) {
+    const char chars[] = "rwxrwxrwx";
+    for (size_t i = 0; i < 9; i++) {
+        buf[i] = (mode & (1 << (8-i))) ? chars[i] : '-';
+    }
+    buf[9] = '\0';
+}
 
-char *generate_directory_listing(char *root_directory,char *sort_by)
-{
+struct stat file_info;
+char *generate_directory_listing(char *root_directory, char *sort_by)
+{   perror(root_directory);
     DIR *dir = opendir(root_directory);
     if (dir == NULL)
     {
@@ -119,41 +146,44 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
     size_t length = 0;
     perror("nde");
     // Generar el encabezado HTML
-    snprintf_j (&html, &buffer_size, &buffer_offset,
-                   "<!DOCTYPE html>\n"
-                   "<html lang=\"en\">\n"
-                   "<head><title>Directory Listing</title>\n"
-                   "<meta charset=\"utf-8\" />\n"
-                   "<style>\n"
-                   "body { font-family: Arial, sans-serif; }\n"
-                   "table { border-collapse: collapse; width: 100%; }\n"
-                   "th, td { text-align: left; padding: 8px; }\n"
-                   "tr:nth-child(even) { background-color: #f2f2f2; }\n"
-                   "th { background-color: #4CAF50; color: white; }\n"
-                   "a { text-decoration: none; color: #000; }\n"
-                   "a:hover { color: #99cc00; }\n"
-                   "</style>\n"
-                   "</head>\n"
-                   "<body>\n"
-                   "<h1>Directory: %s</h1>\n"
-                   "<table>\n"
-                   "<tr><th></th><th><a href=\"?sort_by=name\">Name</a></th><th><a href=\"?sort_by=size\">Size</a></th><th><a href=\"?sort_by=mtime\">Date</a></th></tr>\n"
-                   "<tr><td></td><td colspan=\"3\"><a href=\"..\">&#x2190;</a></td></tr>\n",
-                   root_directory);
+    snprintf_j(&html, &buffer_size, &buffer_offset,
+               "<!DOCTYPE html>\n"
+               "<html lang=\"en\">\n"
+               "<head><title>Directory Listing</title>\n"
+               "<meta charset=\"utf-8\" />\n"
+               "<style>\n"
+               "body { font-family: Arial, sans-serif; }\n"
+               "table { border-collapse: collapse; width: 100%; }\n"
+               "th, td { text-align: left; padding: 8px; }\n"
+               "tr:nth-child(even) { background-color: #f2f2f2; }\n"
+               "th { background-color: #4CAF50; color: white; }\n"
+               "a { text-decoration: none; color: #000; }\n"
+               "a:hover { color: #99cc00; }\n"
+               "</style>\n"
+               "</head>\n"
+               "<body>\n"
+               "<h1>Directory: %s</h1>\n"
+               "<table>\n"
+               "<tr><th></th><th><a href=\"?sort_by=name\">Name</a></th><th><a href=\"?sort_by=size\">Size</a></th><th><a href=\"?sort_by=mtime\">Date</a></th><th>Permissions</a></th></tr>\n"
+               "<tr><td></td><td colspan=\"3\"><a href=\"..\">&#x2190;</a></td></tr>\n",
+               root_directory);
 
     // Listar el contenido del directorio
     struct dirent *entry;
     struct directory_entry entries[1024];
     int num_entries = 0;
+    
     while ((entry = readdir(dir)) != NULL)
     {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-        continue;
+            continue;
 
         // Generar la ruta completa del archivo o directorio
-        char path[1024];
+        char path[1000024];
         snprintf(path, sizeof(path), "%s/%s", root_directory, entry->d_name);
 
+        // Obtener información sobre el archivo o directorio
+        
         // Obtener información sobre el archivo o directorio
         struct stat file_info;
         if (stat(path, &file_info) == 0)
@@ -162,10 +192,20 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
             strcpy(entries[num_entries].name, entry->d_name);
             entries[num_entries].size = file_info.st_size;
             entries[num_entries].mtime = file_info.st_mtime;
+
+            // Obtener los permisos del archivo o directorio
+            mode_t permissions = file_info.st_mode;
+            char permissions_str[11];
+            strmode(permissions, permissions_str);
+
+            // Almacenar los permisos en el arreglo de entradas
+            strcpy(entries[num_entries].permissions, permissions_str);
+
             num_entries++;
+            close(path);
         }
     }
-
+    
     // Ordenar las entradas según el criterio especificado
     if (strcmp(sort_by, "name") == 0)
         qsort(entries, num_entries, sizeof(struct directory_entry), compare_by_name);
@@ -173,7 +213,6 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
         qsort(entries, num_entries, sizeof(struct directory_entry), compare_by_size);
     else if (strcmp(sort_by, "mtime") == 0)
         qsort(entries, num_entries, sizeof(struct directory_entry), compare_by_mtime);
-    
 
     for (int i = 0; i < num_entries; i++)
 {
@@ -186,8 +225,11 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
     // Obtener el tamaño del archivo
     off_t file_size = entries[i].size;
 
+    // Obtener los permisos del archivo o directorio
+    char *permissions = entries[i].permissions;
+
     // Generar la ruta completa del archivo o directorio
-    char path[1024];
+    char path[4096];
     snprintf(path, sizeof(path), "%s/%s", root_directory, entries[i].name);
 
     // Determinar si es un directorio
@@ -196,9 +238,10 @@ char *generate_directory_listing(char *root_directory,char *sort_by)
 
     // Generar la fila HTML para esta entrada
     snprintf_j (&html, &buffer_size, &buffer_offset,
-        "<tr><td>%s</td><td><a href=\"%s%s\">%s</a></td><td>%ld</td><td>%s</td></tr>\n",
-        isdir ? "&#x1F4C2;" : "&#x1F4C4;", urlencode(entries[i].name), isdir ? "/" : "", entries[i].name, file_size, mod_time_str);
+        "<tr><td>%s</td><td><a href=\"%s%s\">%s</a></td><td>%ld</td><td>%s</td><td>%s</td></tr>\n",
+        isdir ? "&#x1F4C2;" : "&#x1F4C4;", urlencode(entries[i].name), isdir ? "/" : "", entries[i].name, file_size, mod_time_str, permissions);
 }
+
     closedir(dir);
 
     return html;
